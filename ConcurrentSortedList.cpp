@@ -5,58 +5,60 @@
 using namespace std;
 
 // * CONSTRUCTOR
-template <class T> 
+template <typename T> 
 ConcurrentSortedList<T>::ConcurrentSortedList() {
 
-    head = new Node(NULL);
+    head = new Node(-1);
     head->next = nullptr;
 }
 
 
 // * DESTRUCTOR
-template <class T> 
+template <typename T> 
 ConcurrentSortedList<T>::~ConcurrentSortedList() {
-    
-    Node* t1 = head, t2 = head->next;
+                    
+    Node* t1 = head;
+    Node* t2 = head->next;
 
     while(t2) {
-        cout << "Deleted " << t1->value << "\n";
+        // cout << "Deleted " << t1->value << "\n"; // debug
         delete t1;
         t1 = t2;
         t2 = t2->next;
     }
 
-    delete t2;
+    // cout << "Deleted " << t1->value << "\n"; // debug
+    delete t1;
 }
 
 
 // * INSERT
-template <class T> 
+template <typename T> 
 bool ConcurrentSortedList<T>::insert(T val) {
 
     Node* n = new Node(val);
     n->value = val;
     n->next = nullptr;
 
-    cout << "Adding " << n->value << "\n";
+    // cout << "Adding " << n->value << "\n";
 
     head->m.lock(); // prev lock
-    Node* prev, cur = head;
+    Node* prev = head;
+    Node* cur;
 
-    if(cur == nullptr) { // empty list
-    
-        head->next = n;
+    if(prev->next == nullptr) { // empty list
+        prev->next = n;
+        prev->m.unlock();
+        cout << val << " successfully added as first element\n";
         return true;
     }
 
-    cur->next->m.lock(); // cur lock
-    prev = cur; // shift ptr
+    prev->next->m.lock();
+    cur = prev->next;
 
     while(cur) {
-        cur = cur->next; // grab next lock
 
         if(cur->value > n->value) { // insert between cur and prev
-
             // insert node
             prev->next = n;
             n->next = cur;
@@ -71,6 +73,11 @@ bool ConcurrentSortedList<T>::insert(T val) {
 
         prev->m.unlock(); // drop prev lock
         prev = cur; // shift ptr
+
+        if(!prev->next) break;
+
+        prev->next->m.lock();
+        cur = prev->next;
     }
 
     // end of list, insert regardless
@@ -83,25 +90,26 @@ bool ConcurrentSortedList<T>::insert(T val) {
 
 
 // * REMOVE
-template <class T> 
+template <typename T> 
 bool ConcurrentSortedList<T>::remove(T val) {
-    
+            
     cout << "Removing " << val << "\n";
 
     head->m.lock(); // prev lock
-    Node* prev, cur = head;
+    Node* prev;
+    Node* cur = head;
 
-    if(cur == nullptr) { // empty list
+    if(cur->next == nullptr) { // empty list
 
-        cout << "List is empty\n";
+        cout << val << " not found in list (empty)\n";
         return false;
     }
 
     cur->next->m.lock(); // cur lock
     prev = cur; // shift ptr
-
+    cur = cur->next;
+    
     while(cur) {
-        cur = cur->next; // grab next lock
 
         if(cur->value == val) { // insert between cur and prev
 
@@ -114,12 +122,12 @@ bool ConcurrentSortedList<T>::remove(T val) {
 
             delete cur;
 
-            cout << val << " successfully removed\n";
             return true;
         }
 
         prev->m.unlock(); // drop prev lock
         prev = cur; // shift ptr
+        cur = cur->next; // grab next lock
     }
 
     // end of list, value not found
@@ -131,7 +139,7 @@ bool ConcurrentSortedList<T>::remove(T val) {
 
 
 // * CONTAINS VALUE
-template <class T> 
+template <typename T> 
 T ConcurrentSortedList<T>::contains(T val) {
 
     cout << "Searching for " << val << "\n"; 
@@ -155,16 +163,25 @@ T ConcurrentSortedList<T>::contains(T val) {
 
 
 // * PRINT FOR DEBUG
-template <class T> 
+template <typename T> 
 void ConcurrentSortedList<T>::print() { // * UNSAFE - DEBUGGING ONLY
 
-    Node* t = head;
+    Node* t = head->next;
 
-    cout << "List:\nHead -> ";
+    if(!t) {
+        cout << "(EMPTY)\n";
+        return;
+    }
+
+    // cout << "List:\nHead -> ";
 
     while(t->next) {
         cout << t->value << " -> ";
+        t = t->next;
     }
-
-    cout << "End";
+    cout << t->value << " -> End\n";
 }
+
+template class ConcurrentSortedList<int>;
+template class ConcurrentSortedList<float>;
+template class ConcurrentSortedList<char>;
