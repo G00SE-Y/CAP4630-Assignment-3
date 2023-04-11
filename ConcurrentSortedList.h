@@ -41,6 +41,7 @@ class ConcurrentSortedList {
         bool insert(T val);
         bool remove(T val);
         T contains(T val);
+        int size();
         void print();   
 
 };

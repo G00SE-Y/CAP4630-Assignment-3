@@ -49,7 +49,7 @@ bool ConcurrentSortedList<T>::insert(T val) {
     if(prev->next == nullptr) { // empty list
         prev->next = n;
         prev->m.unlock();
-        cout << val << " successfully added as first element\n";
+        // cout << val << " successfully added as first element\n"; // debug
         return true;
     }
 
@@ -67,7 +67,7 @@ bool ConcurrentSortedList<T>::insert(T val) {
             prev->m.unlock();
             cur->m.unlock();
 
-            cout << val << " successfully added\n";
+            // cout << val << " successfully added\n"; // debug
             return true;
         }
 
@@ -83,7 +83,7 @@ bool ConcurrentSortedList<T>::insert(T val) {
     // end of list, insert regardless
     prev->next = n;
     prev->m.unlock();
-    cout << val << " successfully added to end of list\n";
+    // cout << val << " successfully added to end of list\n"; // debug
 
     return true;
 }
@@ -93,7 +93,7 @@ bool ConcurrentSortedList<T>::insert(T val) {
 template <typename T> 
 bool ConcurrentSortedList<T>::remove(T val) {
             
-    cout << "Removing " << val << "\n";
+    // cout << "Removing " << val << "\n"; // debug
 
     head->m.lock(); // prev lock
     Node* prev;
@@ -101,7 +101,7 @@ bool ConcurrentSortedList<T>::remove(T val) {
 
     if(cur->next == nullptr) { // empty list
 
-        cout << val << " not found in list (empty)\n";
+        // cout << val << " not found in list (empty)\n"; // debug
         return false;
     }
 
@@ -132,7 +132,7 @@ bool ConcurrentSortedList<T>::remove(T val) {
 
     // end of list, value not found
     prev->m.unlock();
-    cout << val << " not found in list\n";
+    // cout << val << " not found in list\n"; // debug
 
     return false;
 }
@@ -142,7 +142,7 @@ bool ConcurrentSortedList<T>::remove(T val) {
 template <typename T> 
 T ConcurrentSortedList<T>::contains(T val) {
 
-    cout << "Searching for " << val << "\n"; 
+    // cout << "Searching for " << val << "\n";  // debug 
 
     head->m.lock();
     Node* t = head;
@@ -159,6 +159,22 @@ T ConcurrentSortedList<T>::contains(T val) {
     }
 
     return false;
+}
+
+
+// * GET LENGTH
+template <typename T> 
+int ConcurrentSortedList<T>::size() { // * NOT THREAD-SAFE; USE WITH CAUTION
+
+    Node* t = head;
+    int size = 0;
+
+    while(t->next) {
+        size++;
+        t = t->next;
+    }
+    
+    return size;
 }
 
 
