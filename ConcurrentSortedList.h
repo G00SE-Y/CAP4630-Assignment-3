@@ -39,6 +39,7 @@ class ConcurrentSortedList {
         ~ConcurrentSortedList();
 
         bool insert(T val);
+        bool remove_front();
         bool remove(T val);
         T contains(T val);
         int size();

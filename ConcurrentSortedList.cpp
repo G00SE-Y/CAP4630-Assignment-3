@@ -96,6 +96,43 @@ bool ConcurrentSortedList<T>::insert(T val) {
 }
 
 
+// * REMOVE FRONT
+template <typename T> 
+bool ConcurrentSortedList<T>::remove_front() {
+    
+    string str = "";
+    // str = "Removing front of list\n"; // debug
+    // cout << str;
+
+    head->m.lock();
+    
+    Node* remove = head->next; // node to be removed
+    remove->m.lock();
+
+    
+    if(remove == nullptr) { // nothing to remove
+        head->m.unlock();
+        remove->m.unlock();
+        // str = "List is empty\n"; // debug
+        // cout << str;
+        return false; 
+    }
+
+
+    head->next = remove->next;
+
+    head->m.unlock();
+    remove->m.unlock();
+
+    // str = "Successfully removed front of list\n"; // debug
+    // cout << str;
+
+    delete remove;
+
+    return true;
+}
+
+
 // * REMOVE
 template <typename T> 
 bool ConcurrentSortedList<T>::remove(T val) {
