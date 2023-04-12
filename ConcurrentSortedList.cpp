@@ -43,8 +43,8 @@ bool ConcurrentSortedList<T>::insert(T val) {
     n->value = val;
     n->next = nullptr;
 
-    str =  "Adding " + to_string(n->value) + "\n";
-    cout << str;
+    // str =  "Adding " + to_string(n->value) + "\n";
+    // cout << str;
 
     head->m.lock(); // prev lock
     Node* prev = head;
@@ -53,8 +53,8 @@ bool ConcurrentSortedList<T>::insert(T val) {
     if(prev->next == nullptr) { // empty list
         prev->next = n;
         prev->m.unlock();
-        str =  to_string(val) + " successfully added as first element\n"; // debug
-        cout << str;
+        // str =  to_string(val) + " successfully added as first element\n"; // debug
+        // cout << str;
         return true;
     }
 
@@ -72,8 +72,8 @@ bool ConcurrentSortedList<T>::insert(T val) {
             prev->m.unlock();
             cur->m.unlock();
 
-            str = to_string(val) + " successfully added\n"; // debug
-            cout << str;
+            // str = to_string(val) + " successfully added\n"; // debug
+            // cout << str;
             return true;
         }
 
@@ -90,8 +90,8 @@ bool ConcurrentSortedList<T>::insert(T val) {
     prev->next = n;
     prev->m.unlock();
 
-    str = to_string(val) + " successfully added to end of list\n"; // debug
-    cout << str;
+    // str = to_string(val) + " successfully added to end of list\n"; // debug
+    // cout << str;
     return true;
 }
 
@@ -102,8 +102,8 @@ bool ConcurrentSortedList<T>::remove(T val) {
     
     string str = "";
 
-    str = "Removing " + to_string(val) + "\n"; // debug
-    cout << str;
+    // str = "Removing " + to_string(val) + "\n"; // debug
+    // cout << str;
 
     head->m.lock(); // prev lock
     Node* prev;
@@ -111,8 +111,8 @@ bool ConcurrentSortedList<T>::remove(T val) {
 
     if(cur->next == nullptr) { // empty list
 
-        str = to_string(val) + " not found in list (empty)\n"; // debug
-        cout << str;
+        // str = to_string(val) + " not found in list (empty)\n"; // debug
+        // cout << str;
         return false;
     }
 
@@ -133,8 +133,8 @@ bool ConcurrentSortedList<T>::remove(T val) {
 
             delete cur;
 
-            str = "Removed " + to_string(val) + " from list\n";
-            cout << str;
+            // str = "Removed " + to_string(val) + " from list\n";
+            // cout << str;
             return true;
         }
 
@@ -146,8 +146,8 @@ bool ConcurrentSortedList<T>::remove(T val) {
     // end of list, value not found
     prev->m.unlock();
     
-    str = to_string(val) + " not found in list\n"; // debug
-    cout << str;
+    // str = to_string(val) + " not found in list\n"; // debug
+    // cout << str;
 
     return false;
 }
@@ -158,8 +158,8 @@ template <typename T>
 T ConcurrentSortedList<T>::contains(T val) {
     string str = "";
 
-    str = "Searching for " + to_string(val) + "\n";  // debug 
-    cout << str;
+    // str = "Searching for " + to_string(val) + "\n";  // debug 
+    // cout << str;
 
     head->m.lock();
     Node* t = head;
@@ -167,8 +167,8 @@ T ConcurrentSortedList<T>::contains(T val) {
     while(t) {
         
         if(t->value == val) {
-            str = "Found " + to_string(val) + "\n";
-            cout << str;
+            // str = "Found " + to_string(val) + "\n";
+            // cout << str;
 
             t->m.unlock();
             return true;
@@ -179,8 +179,8 @@ T ConcurrentSortedList<T>::contains(T val) {
         t = t->next;
     }
 
-    str = "Could not find " + to_string(val) + " in list\n";
-    cout << str;
+    // str = "Could not find " + to_string(val) + " in list\n";
+    // cout << str;
     return false;
 }
 
