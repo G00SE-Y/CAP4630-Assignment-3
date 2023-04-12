@@ -15,10 +15,10 @@ using namespace std::chrono;
 // * starting conditions
 const int n_sensors = 8;
 
-const int ms_per_minute = 200;
+const int ms_per_minute = 50;
 const int n_hours = 2;
 const int n_reads_per_hour = 60;
-const int n_cycles = 10; // n_hours * n_reads_per_hour;
+const int n_cycles = n_hours * n_reads_per_hour;
 
 double min_temp = -100.0;
 double max_temp =   70.0;
@@ -32,16 +32,13 @@ double readings[n_sensors][n_cycles];
 bool flags[n_sensors];
 
 
-// * global mutexes
-
-
-
 // * helper functions
 int create_report(int n_threads);
 void sensor_function(int id, int cycles);
 string format_float(double n, int precision, int len);
 bool all_ready(bool* flags, int len);
 void pretty_print_readings(double arr[n_sensors][n_cycles], int nsens, int nreads);
+void print_report(double arr[n_sensors][n_cycles], int nsens, int nreads, int hour);
 
 
 int main() {
@@ -83,13 +80,26 @@ int create_report(int n_threads) {
     
     auto start = high_resolution_clock::now(); // start measuring
 
+    for(int i = 0; i < n_hours + 1; i++) {
+
+        int time_in_ms = 1;
+        while(time_in_ms % (ms_per_minute * n_reads_per_hour) != 0) { 
+            auto cur = high_resolution_clock::now();
+            time_in_ms = duration_cast<milliseconds>(cur - start).count();
+        }
+
+        print_report(readings, n_threads, n_hours, i - 1);
+        
+        this_thread::sleep_for(chrono::milliseconds(1));
+    }
+
     while(!pool.empty()) { // wait for all threads to finish, then destroy them (with laser sharks that can shoot venom up to 10 feet away and are highly trained black belts in shark jutsu)
         pool.front().join();
         pool.pop();
     }
     auto end = high_resolution_clock::now(); // stop measuring
 
-    pretty_print_readings(readings, 8, n_cycles);
+    // pretty_print_readings(readings, 8, n_cycles);
 
     return duration_cast<milliseconds>(end - start).count() / n_cycles; // return avg cycle time
 }
@@ -121,7 +131,7 @@ void sensor_function(int id, int cycles) {
             time_in_ms = duration_cast<milliseconds>(stop - start).count();
         } // wait for next measurement time
         
-        readings[id][i] = dist(*generator);
+        readings[id][i - 1] = dist(*generator);
 
         // str = "T" + to_string(id) + " read " + format_float(readings[id][i], 3, 8) + " F\n";
         // cout << str;
@@ -183,4 +193,65 @@ void pretty_print_readings(double arr[n_sensors][n_cycles], int nsens, int nread
     }
 
     cout << str;
+}
+
+
+void print_report(double arr[n_sensors][n_cycles], int nsens, int nreads, int hour) {
+
+    string report = "";
+
+    int start_idx = hour * n_reads_per_hour;
+    int stop_idx = (hour + 1) * n_reads_per_hour - 1;
+
+    int cycles_per_10 = n_reads_per_hour / 6;
+
+    if(start_idx < 0) return;
+
+    report = "Report for hour " + to_string(hour) + " (cycle " + to_string(start_idx) + " to " + to_string(stop_idx) + "):\n\n";
+
+    for(int m = 0; m < 6; m++ ) {
+        
+        int low_idx = m * cycles_per_10 + start_idx;
+        int high_idx = (m + 1) *cycles_per_10 - 1 + start_idx; 
+
+        double min_arr[5] = {max_temp, max_temp, max_temp, max_temp, max_temp};
+        double max_arr[5] = {min_temp, min_temp, min_temp, min_temp, min_temp};
+        double val;
+
+        for(int i = 0; i < nsens; i++) {
+            for(int j = low_idx; j < high_idx; j++) {
+                
+                val = arr[i][j];
+
+                for(int k = 0; k < 5; k++) {
+
+                    if(val < min_arr[k]) {
+                        min_arr[k] = val;
+                        break;
+                    }
+
+                    if(val > max_arr[k]) {
+                        max_arr[k] = val;
+                        break;
+                    }
+                }
+
+            }
+        }
+        
+        for(int i = 0; i < 5; i++) {
+            cout << min_arr[i] << ", ";
+        }
+        cout << "\n";
+        
+        for(int i = 0; i < 5; i++) {
+            cout << max_arr[i] << ", ";
+        }
+        cout << "\n\n";
+
+        // report += "Range for period " + to_string(m) + ": (" + format_float(min, 3, 0) + ", " + format_float(max, 3, 0) + ")\n"; 
+    }
+
+    report += "---------------------------------------\n";
+    cout << report;
 }
