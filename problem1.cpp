@@ -17,26 +17,28 @@ using namespace std::chrono;
 
 // * starting conditions
 int n_servants = 4;
-int n_presents = 5000; // 500,000
+int n_presents = 100; // 500,000
 
 
 // * gloabl vars
 ConcurrentSortedList<int> list = ConcurrentSortedList<int>(); // the list of presents
+vector<int> bag;
+
 bool start = false;
 
 bool bag_empty = false; // if all gifts removed from bag 
 bool chain_empty = false; // if all gifts removed from chain
 
-int gifts_in_bag = n_presents; // number of gifts left to write cards for
 int gifts_in_chain = 0;
 
 
 // * global mutexes
-mutex mut_gifts_in_bag;
+mutex mut_bag;
 mutex mut_gifts_in_chain;
 
 
 // * helper functions
+void generate_bag(int n);
 void servant_function(int id);
 int write_cards(int n_threads, int n_elements);
 
@@ -45,6 +47,10 @@ int main() {
 
     printf("Number of presents: %d\n", n_presents);
     printf("Number of servants (threads): %d\n", n_servants);
+
+    srand(time(NULL)); // seed the rng
+
+    generate_bag(n_presents); // placed outside of timing because it is a starting condition
 
     // run simulation
     auto start = high_resolution_clock::now(); // start time
@@ -59,21 +65,26 @@ int main() {
 }
 
 
+void generate_bag(int n) {
+    
+    int v;
+
+    for(int i = 0; i < n; i++) {
+        v = rand() % n;
+        bag.push_back(v);
+    }
+}
+
+
 void servant_function(int id) {
 
-    int gift_id, action, ok;
-    string str = "";
+    int gift_id, action, ok, query;
+    string str = "";    
 
     // RNG stuff
-    int a_max = 3 - 1;
-    int g_max = n_presents - 1;
-
-    // create generator
-    static thread_local mt19937* generator = new mt19937(clock() + id); 
-
-    // create distributions
-    uniform_int_distribution<int> action_dist(0, a_max); 
-    uniform_int_distribution<int> gift_dist(0, g_max);
+    static thread_local mt19937* generator = new mt19937(id);
+    uniform_int_distribution<int> dist(0, n_presents);
+    uniform_int_distribution<int> action_dist(0, 2);
 
     while(!start) { } // wait for signal
     str = "T" + to_string(id) + " has started working!\n";
@@ -81,40 +92,39 @@ void servant_function(int id) {
 
     while(!(chain_empty && bag_empty)) { // run loop
 
-        action = action_dist(*generator); // generate an action
-        gift_id = gift_dist(*generator); // generate a random gift id
-
-        // str = "T" + to_string(id) + " wants to do action " + to_string(action) + " on " + to_string(gift_id) + "\n";
+        action =  action_dist(*generator); // generate an action
+        
+        // str = "T" + to_string(id) + " wants to do action " + to_string(action) + "\n";
         // cout << str;
 
         switch(action) { // random actions
 
             case 0: // insert
+
                 if(bag_empty) break; // no presents left to insert, skip
 
-                // atomic compare and set
-                mut_gifts_in_bag.lock();
+                mut_bag.lock();
                 
-                if(gifts_in_bag <= 0 ) { // no more gifts to add, notify all and skip
+                if(bag.size() == 0) { // no more gifts to add, notify all and skip
                     bag_empty = true;
-                    mut_gifts_in_bag.unlock();
+                    mut_bag.unlock();
                     break;
                 }
 
-                ok = list.insert(gift_id);
+                gift_id = bag.back();
+                bag.pop_back();
 
-                if(ok) { // insert random gift
-                    gifts_in_bag--; // update count
-                    // str = "T" + to_string(id) + " inserted " + to_string(gift_id) + ".\n"; // debug
-                    // cout << str; // debug
-                }
-                mut_gifts_in_bag.unlock();
+                mut_bag.unlock();
 
-                if(ok) {
+                if(list.insert(gift_id)) {
+
                     mut_gifts_in_chain.lock();
                     gifts_in_chain++; // update count
                     chain_empty = false; // notify all that gifts are in the chain
                     mut_gifts_in_chain.unlock();
+
+                    str = "T" + to_string(id) + " added a gift.\n"; // debug
+                    cout << str;// debug
                 }
 
                 break;
@@ -132,33 +142,35 @@ void servant_function(int id) {
                     break;
                 }
 
-                ok = list.remove(gift_id);
+                ok = list.remove_front();
+                // ok = list.remove(dist(*generator));
 
                 if(ok) { // remove gift with random id
                     gifts_in_chain--; // update count
-                    // str = "T" + to_string(id) + " removed " + to_string(gift_id) + ".\n"; // debug
-                    // cout << str;// debug
+                    str = "T" + to_string(id) + " removed a gift.\n"; // debug
+                    cout << str;// debug
                 }
                 mut_gifts_in_chain.unlock();
 
                 break;
 
-            
-            case 2:
 
-                if(list.contains(gift_id)) { // remove gift with random id
-                    // str = "T" + to_string(id) + " found " + to_string(gift_id) + " in chain.\n"; // debug
+            case 2: // search
+
+                query = dist(*generator);
+                if(list.contains(query)) { // remove gift with random id
+                    str = "T" + to_string(id) + " found " + to_string(query) + " in chain.\n"; // debug
                 }
                 else {
-                    // str = "T" + to_string(id) + " did not find " + to_string(gift_id) + " in chain.\n"; // debug
+                    str = "T" + to_string(id) + " did not find " + to_string(query) + " in chain.\n"; // debug
                 }
 
-                // cout << str; // debug
+                cout << str; // debug
 
                 break;
         }
     }
-    
+
     delete generator;
     cout << id << " has finished!\n";
     return;
@@ -177,20 +189,13 @@ int write_cards(int n_threads, int n_elements) {
     cout << "\nAll servants are ready... Begin!\n\n"; // DEBUG
     start = true; // start the process
 
-    // while(!chain_empty) {
-
-    //     if(bag_empty) {
-
-    //     }
-    // }
-
     while(!pool.empty()) { // wait for all threads to finish, then destroy them (with laser sharks that can shoot venom up to 10 feet away)
         pool.front().join();
         pool.pop();
     }
 
-    cout << "Remaining gifts in bag: " << gifts_in_bag << "\n";
-    cout << "Remaining gifts in bag: " << gifts_in_chain << "\n";
+    cout << "Remaining gifts in bag: " << bag.size() << "\n";
+    cout << "Remaining gifts in chain: " << gifts_in_chain << "\n";
 
     return list.size();
 }
