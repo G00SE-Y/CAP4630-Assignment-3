@@ -17,7 +17,7 @@ using namespace std::chrono;
 
 // * starting conditions
 int n_servants = 4;
-int n_presents = 100; // 500,000
+int n_presents = 500000; // 500,000
 
 
 // * gloabl vars
@@ -123,8 +123,8 @@ void servant_function(int id) {
                     chain_empty = false; // notify all that gifts are in the chain
                     mut_gifts_in_chain.unlock();
 
-                    str = "T" + to_string(id) + " added a gift.\n"; // debug
-                    cout << str;// debug
+                    // str = "T" + to_string(id) + " added a gift.\n"; // debug
+                    // cout << str;// debug
                 }
 
                 break;
@@ -147,8 +147,8 @@ void servant_function(int id) {
 
                 if(ok) { // remove gift with random id
                     gifts_in_chain--; // update count
-                    str = "T" + to_string(id) + " removed a gift.\n"; // debug
-                    cout << str;// debug
+                    // str = "T" + to_string(id) + " removed a gift.\n"; // debug
+                    // cout << str;// debug
                 }
                 mut_gifts_in_chain.unlock();
 
@@ -159,20 +159,21 @@ void servant_function(int id) {
 
                 query = dist(*generator);
                 if(list.contains(query)) { // remove gift with random id
-                    str = "T" + to_string(id) + " found " + to_string(query) + " in chain.\n"; // debug
+                    // str = "T" + to_string(id) + " found " + to_string(query) + " in chain.\n"; // debug
                 }
                 else {
-                    str = "T" + to_string(id) + " did not find " + to_string(query) + " in chain.\n"; // debug
+                    // str = "T" + to_string(id) + " did not find " + to_string(query) + " in chain.\n"; // debug
                 }
 
-                cout << str; // debug
+                // cout << str; // debug
 
                 break;
         }
     }
 
     delete generator;
-    cout << id << " has finished!\n";
+    str = to_string(id) + " has finished!\n";
+    cout << str;
     return;
 }
 
