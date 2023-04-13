@@ -16,7 +16,7 @@ using namespace std::chrono;
 // * starting conditions
 const int n_sensors = 8;
 
-const int ms_per_minute = 1000;
+const int ms_per_minute = 30;
 const int n_hours = 5;
 const int n_reads_per_hour = 60;
 const int n_cycles = n_hours * n_reads_per_hour;
@@ -29,12 +29,13 @@ double max_temp =   70.0;
 bool start = false;
 bool reset = false;
 int cycle = 0;
+int current_hour;
 double readings[n_sensors][n_cycles];
 bool flags[n_sensors];
 
 
 // * helper functions
-int create_report(int n_threads);
+int run_simulation(int n_threads);
 void sensor_function(int id, int cycles);
 string format_float(double n, int precision, int len);
 bool all_ready(bool* flags, int len);
@@ -48,7 +49,7 @@ int main() {
 
     // run simulation
     auto start = high_resolution_clock::now(); // start time
-    int avg_time = create_report(n_sensors);// simulation
+    int avg_time = run_simulation(n_sensors);// simulation
     auto end = high_resolution_clock::now(); // end time
 
     int total_time = duration_cast<milliseconds>(end - start).count();
@@ -62,7 +63,7 @@ int main() {
 }
 
 
-int create_report(int n_threads) {
+int run_simulation(int n_threads) {
     
     queue<thread> pool;
 
@@ -89,7 +90,8 @@ int create_report(int n_threads) {
             time_in_ms = duration_cast<milliseconds>(cur - start).count();
         }
 
-        print_report(readings, n_threads, n_hours, i - 1);
+        current_hour = i - 1;
+        // print_report(readings, n_threads, n_hours, i - 1);
         
         this_thread::sleep_for(chrono::milliseconds(1));
     }
@@ -133,12 +135,12 @@ void sensor_function(int id, int cycles) {
         } // wait for next measurement time
         
         readings[id][i - 1] = dist(*generator);
-
-        // str = "T" + to_string(id) + " read " + format_float(readings[id][i], 3, 8) + " F\n";
-        // cout << str;
-        
+       
         this_thread::sleep_for(chrono::milliseconds(1));
+
+        if(id == 0 && i % n_reads_per_hour == 0) print_report(readings, n_sensors, n_hours, current_hour); // since there are 8 cores in the exmaple simulation, i believe it is intended that one of the 8 threads compiles the report as opposed to the main calling thread compiling it, which only facilitates the simulation
     }
+
 
     delete generator;
     return;
