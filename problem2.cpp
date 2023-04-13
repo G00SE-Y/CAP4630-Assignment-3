@@ -7,6 +7,7 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
+#include <queue>
 
 using namespace std;
 using namespace std::chrono;
@@ -15,8 +16,8 @@ using namespace std::chrono;
 // * starting conditions
 const int n_sensors = 8;
 
-const int ms_per_minute = 50;
-const int n_hours = 2;
+const int ms_per_minute = 1000;
+const int n_hours = 5;
 const int n_reads_per_hour = 60;
 const int n_cycles = n_hours * n_reads_per_hour;
 
@@ -209,49 +210,91 @@ void print_report(double arr[n_sensors][n_cycles], int nsens, int nreads, int ho
 
     report = "Report for hour " + to_string(hour) + " (cycle " + to_string(start_idx) + " to " + to_string(stop_idx) + "):\n\n";
 
-    for(int m = 0; m < 6; m++ ) {
-        
-        int low_idx = m * cycles_per_10 + start_idx;
-        int high_idx = (m + 1) *cycles_per_10 - 1 + start_idx; 
 
-        double min_arr[5] = {max_temp, max_temp, max_temp, max_temp, max_temp};
-        double max_arr[5] = {min_temp, min_temp, min_temp, min_temp, min_temp};
-        double val;
+    priority_queue<double> min_q;
+    priority_queue<double, std::vector<double>, std::greater<double>> max_q;
 
-        for(int i = 0; i < nsens; i++) {
-            for(int j = low_idx; j < high_idx; j++) {
-                
-                val = arr[i][j];
+    int i, j, k;
 
-                for(int k = 0; k < 5; k++) {
+    // min 5 and max 5 values
+    for(i = 0; i < nsens; i++) {
+        for(j = start_idx; j < stop_idx; j++) {
 
-                    if(val < min_arr[k]) {
-                        min_arr[k] = val;
-                        break;
-                    }
+            min_q.push(readings[i][j]);
+            max_q.push(readings[i][j]);
+            
+            if(min_q.size() > 5) {
 
-                    if(val > max_arr[k]) {
-                        max_arr[k] = val;
-                        break;
-                    }
-                }
-
+                min_q.pop();
+                max_q.pop();
             }
         }
-        
-        for(int i = 0; i < 5; i++) {
-            cout << min_arr[i] << ", ";
-        }
-        cout << "\n";
-        
-        for(int i = 0; i < 5; i++) {
-            cout << max_arr[i] << ", ";
-        }
-        cout << "\n\n";
-
-        // report += "Range for period " + to_string(m) + ": (" + format_float(min, 3, 0) + ", " + format_float(max, 3, 0) + ")\n"; 
     }
 
-    report += "---------------------------------------\n";
+    report += "5 lowest temperatures:  ";
+    while(min_q.size() > 0) {
+        report += format_float(min_q.top(), 3, 8) + " ";
+        min_q.pop();
+    }
+    report += "\n\n";
+    
+    report += "5 highest temperatures: ";
+    while(max_q.size() > 0) {
+        report += format_float(max_q.top(), 3, 8) + " ";
+        max_q.pop();
+    }
+    report += "\n\n";
+
+
+    // finding largest temp difference in 10 minutes
+    double best_low;
+    double best_high;
+    double best_diff = 0;
+
+    double cur_low;
+    double cur_high;
+    double cur_diff;
+
+    double val;
+
+    deque<double> queue;
+    int qsize = 0;
+
+    for(i = start_idx; i <= stop_idx; i++) {
+        qsize = queue.size();
+
+        if( qsize >= cycles_per_10 * 8) {
+
+            for(j = 0; j < qsize; j++) {
+
+                val = queue.at(j);
+
+                if(val < cur_low) {
+                    cur_low = val;
+                }
+
+                if(val > cur_high) {
+                    cur_high = val;
+                }
+            }
+
+            for(j = 0; j < nsens; j++) {
+                queue.pop_front();
+            }
+
+            cur_diff = cur_high - cur_low;
+
+            if(cur_diff > best_diff) best_diff = cur_diff;
+        }
+
+        for(j = 0; j < nsens; j++) {
+
+            queue.push_back(readings[j][i]);
+        }
+    }
+
+    report += "Largest 10-minute difference in temperature was " + format_float(best_diff, 3, 0) + " F\n"; 
+
+    report += "---------------------------------------\n\n";
     cout << report;
 }
