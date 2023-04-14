@@ -44,7 +44,7 @@ That said, it does work correctly for any value above 30, and considering the 'r
 
 This decision is simple, but I do believe it affects my program's performance. The idea of simulating an 8-thread CPU is simple, but the question is about how it would compile the report at the end of every hour. Since this program is actually written using 9 threads (1 main thread, and 8 spawned ones), my question was whether or not one or all of those 8 threads were intended to compile the report, or if it was fine for the main thread to compile the report. 
 
-In terms of the simulation, I could see it being that there were 8 threads solely responsible for handling the measurement taking and another component of the module performing the summary. However, that is neither stated nor implied, so I chose to instead interpret that one or all of the 8 threads were required to perform the compilation as opposed to assuming something else i nthe module would do it.
+In terms of the simulation, I could see it being that there were 8 threads solely responsible for handling the measurement taking and another component of the module performing the summary. However, that is neither stated nor implied, so I chose to instead interpret that one or all of the 8 threads were required to perform the compilation as opposed to assuming something else in the module would do it.
 
 In my implementation, the only difference in the code is that I have the thread with id `0` perform the compilation every hour as opposed to the main thread doing it. But, this means that one of the threads is limited by how fast it can create the report, which is why my program's lower functional bound is 30ms. Any lower, and that thread started to miss readings.
 
