@@ -18,8 +18,8 @@ After doing some empirical testing, my code regularly completes in ~6.5 seconds 
 
 To run the solution to problem 1, do
 
-`g++ -o [executable name] problem1.cpp ConcurrentSortedList.cpp`
-`./[executable name]`
+- `g++ -o [executable name] problem1.cpp ConcurrentSortedList.cpp`
+- `./[executable name]`
 
 
 # Problem 2: Atmospheric Temperature Reading Module
@@ -54,5 +54,5 @@ That said, at the scale referenced in the problem, 30ms is still insanely faster
 
 To run the solution to problem 2, do
 
-`g++ -o [executable name] problem2.cpp`
-`./[executable name]`
+- `g++ -o [executable name] problem2.cpp`
+- `./[executable name]`
